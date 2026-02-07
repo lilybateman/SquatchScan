@@ -1,65 +1,318 @@
-import Image from "next/image";
+"use client";
+
+import { useState, useCallback } from "react";
+import { getProgressMessage } from "@/lib/squatch";
+
+interface AnalysisResult {
+  aiAnalysis: {
+    environment?: string;
+    blurry?: number;
+    humanoid?: boolean;
+    humanoidSquatchLike?: boolean;
+    wearingClothes?: boolean;
+    hairyOrFurry?: boolean;
+    animal?: boolean;
+    animalType?: string;
+    lighting?: string;
+    objectsDetected?: string[];
+    creatureConfidence?: number;
+    description?: string;
+    dadProfileMatch?: boolean;
+  };
+  score: number;
+  conclusion: string;
+  easterEgg?: string;
+  dadSquatch?: boolean;
+}
 
 export default function Home() {
+  const [image, setImage] = useState<File | null>(null);
+  const [preview, setPreview] = useState<string | null>(null);
+  const [analyzing, setAnalyzing] = useState(false);
+  const [progressIndex, setProgressIndex] = useState(0);
+  const [result, setResult] = useState<AnalysisResult | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleFileChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      setResult(null);
+      setError(null);
+      if (file && file.type.startsWith("image/")) {
+        setImage(file);
+        setPreview(URL.createObjectURL(file));
+      } else if (file) {
+        setError("Please select an image file (JPEG, PNG, GIF, WebP)");
+        setImage(null);
+        setPreview(null);
+      }
+    },
+    []
+  );
+
+  const handleAnalyze = useCallback(async () => {
+    if (!image) return;
+    setAnalyzing(true);
+    setResult(null);
+    setError(null);
+
+    const progressInterval = setInterval(() => {
+      setProgressIndex((i) => i + 1);
+    }, 800);
+
+    try {
+      const formData = new FormData();
+      formData.append("image", image);
+
+      console.log("[SquatchScan] Sending image to /api/analyze...", {
+        name: image.name,
+        size: image.size,
+        type: image.type,
+      });
+      const res = await fetch("/api/analyze", {
+        method: "POST",
+        body: formData,
+      });
+
+      const contentType = res.headers.get("content-type");
+      const text = await res.text();
+      console.log("[SquatchScan] Response:", {
+        status: res.status,
+        contentType,
+        textLength: text.length,
+        textPreview: text.slice(0, 200),
+      });
+
+      let data: unknown;
+      try {
+        data = contentType?.includes("application/json")
+          ? JSON.parse(text)
+          : { error: `Server error (${res.status}). Response was not JSON.` };
+      } catch {
+        const msg = res.ok
+          ? "Invalid response from server"
+          : `Server error (${res.status}). Try a smaller image or check your API key. Check the terminal for details.`;
+        console.error("[SquatchScan] Parse error. Raw response:", text.slice(0, 500));
+        setError(msg);
+        return;
+      }
+
+      if (!res.ok) {
+        const errData = data as { error?: string; details?: unknown };
+        console.error("[SquatchScan] API error:", errData);
+        throw new Error(errData.error || "Analysis failed");
+      }
+
+      setResult(data as AnalysisResult);
+    } catch (err) {
+      console.error("[SquatchScan] Request error:", err);
+      setError(err instanceof Error ? err.message : "Something went wrong");
+    } finally {
+      clearInterval(progressInterval);
+      setAnalyzing(false);
+      setProgressIndex(0);
+    }
+  }, [image]);
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
+    <div className="relative min-h-screen">
+      <div
+        className="fixed inset-0 bg-cover bg-left bg-no-repeat"
+        style={{ backgroundImage: "url(/Patterson_Gimlin_Bigfoot.jpg)" }}
+      />
+      <div
+        className="fixed inset-0 bg-emerald-900/60"
+        aria-hidden
+      />
+      <div className="relative z-10 mx-auto max-w-2xl px-4 py-12 sm:px-6">
+        <header className="mb-12 text-center">
+          <h1 className="font-serif text-4xl font-bold tracking-tight text-stone-100 sm:text-5xl">
+            SquatchScan
           </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+          <p className="mt-2 text-lg font-medium text-stone-100 drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">
+            Scientific image analysis for the discerning cryptozoologist
           </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
+        </header>
+
+        <div className="space-y-8">
+          {/* Upload */}
+          <section className="rounded-2xl border border-stone-700/50 bg-stone-900/40 p-6 shadow-lg backdrop-blur-sm">
+            <input
+              id="file-upload"
+              type="file"
+              accept="image/*"
+              onChange={handleFileChange}
+              className="hidden"
+              disabled={analyzing}
             />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+            {preview ? (
+              <div className="relative flex flex-col items-center justify-center gap-4 rounded-xl border-2 border-stone-600/60 bg-stone-800/30 py-12">
+                <div className="relative">
+                  <img
+                    src={preview}
+                    alt="Preview"
+                    className="max-h-64 max-w-full rounded-lg object-contain"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setImage(null);
+                      setPreview((p) => {
+                        if (p) URL.revokeObjectURL(p);
+                        return null;
+                      });
+                      setResult(null);
+                      setError(null);
+                    }}
+                    disabled={analyzing}
+                    className="absolute -right-3 -top-3 flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-stone-800/90 text-xl text-white transition hover:bg-stone-700 disabled:cursor-not-allowed disabled:opacity-50"
+                    aria-label="Remove image"
+                  >
+                    ×
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <label
+                htmlFor="file-upload"
+                className="flex cursor-pointer flex-col items-center justify-center gap-4 rounded-xl border-2 border-stone-600/60 bg-stone-800/30 py-12 transition-colors hover:border-emerald-700/80 hover:bg-stone-800/50"
+              >
+                <span className="text-white">Upload</span>
+              </label>
+            )}
+          </section>
+
+          {/* Analyze */}
+          <div className="flex justify-center">
+            <button
+              onClick={handleAnalyze}
+              disabled={!image || analyzing}
+              className="cursor-pointer rounded-full border border-stone-700/50 bg-stone-900/40 px-8 py-3 font-semibold text-stone-100 shadow-md backdrop-blur-sm transition hover:bg-stone-800/50 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {analyzing ? "Scanning…" : "Scan for Squatch"}
+            </button>
+          </div>
+
+          {/* Progress */}
+          {analyzing && (
+            <div className="animate-pulse rounded-2xl border border-stone-600/50 bg-stone-800/40 p-6 text-center">
+              <p className="font-mono text-sm text-stone-400">
+                {getProgressMessage(progressIndex)}
+              </p>
+            </div>
+          )}
+
+          {/* Error */}
+          {error && (
+            <div className="rounded-2xl border border-red-900/50 bg-red-950/30 p-4 text-red-300">
+              {error}
+            </div>
+          )}
+
+          {/* Result */}
+          {result && !analyzing && (
+            <section className="space-y-4 rounded-2xl border border-stone-700/50 bg-stone-900/40 p-6 shadow-lg backdrop-blur-sm">
+              {result.dadSquatch ? (
+                <>
+                  <div className="rounded-xl bg-stone-800/50 p-6 text-center">
+                    <p className="text-sm uppercase tracking-wider text-stone-400">
+                      Squatch Probability
+                    </p>
+                    <p className="font-serif text-5xl font-bold text-emerald-400">
+                      100%
+                    </p>
+                    <p className="mt-2 font-medium text-stone-300">
+                      Definitely a squatch, no explanation needed.
+                    </p>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <h2 className="font-serif text-2xl font-bold text-stone-100">
+                    Scientific Report
+                  </h2>
+
+                  {/* Score */}
+                  <div className="rounded-xl bg-stone-800/50 p-6 text-center">
+                    <p className="text-sm uppercase tracking-wider text-stone-400">
+                      Squatch Probability
+                    </p>
+                    <p className="font-serif text-5xl font-bold text-emerald-400">
+                      {result.score}%
+                    </p>
+                    <p className="mt-2 font-medium text-stone-300">
+                      {result.conclusion}
+                    </p>
+                    {result.easterEgg && (
+                      <p className="mt-2 text-sm italic text-stone-500">
+                        {result.easterEgg}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Report sections */}
+                  <div className="grid gap-4 sm:grid-cols-2">
+                <div className="rounded-lg border border-stone-700/40 bg-stone-800/30 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-stone-500">
+                    🌲 Environment Suitability
+                  </p>
+                  <p className="mt-1 font-medium text-stone-300">
+                    {result.aiAnalysis.environment
+                      ? result.aiAnalysis.environment.charAt(0).toUpperCase() +
+                        result.aiAnalysis.environment.slice(1).toLowerCase()
+                      : "—"}
+                  </p>
+                </div>
+                <div className="rounded-lg border border-stone-700/40 bg-stone-800/30 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-stone-500">
+                    📷 Blur Index
+                  </p>
+                  <p className="mt-1 font-medium text-stone-300">
+                    {result.aiAnalysis.blurry !== undefined
+                      ? `${result.aiAnalysis.blurry}/10`
+                      : "—"}
+                  </p>
+                </div>
+                <div className="rounded-lg border border-stone-700/40 bg-stone-800/30 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-stone-500">
+                    🦣 Humanoid Squatch Detection
+                  </p>
+                  <p className="mt-1 font-medium text-stone-300">
+                    {(() => {
+                      const val =
+                        result.aiAnalysis.humanoidSquatchLike !== undefined
+                          ? result.aiAnalysis.humanoidSquatchLike
+                            ? "Squatch-like detected"
+                            : "Not squatch-like"
+                          : result.aiAnalysis.humanoid !== undefined
+                            ? result.aiAnalysis.humanoid
+                              ? "Humanoid only"
+                              : "Not detected"
+                            : null;
+                      return val ? val.charAt(0).toUpperCase() + val.slice(1) : "—";
+                    })()}
+                  </p>
+                </div>
+                <div className="rounded-lg border border-stone-700/40 bg-stone-800/30 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-stone-500">
+                    👕 Clothing Detected
+                  </p>
+                  <p className="mt-1 font-medium text-stone-300">
+                    {result.aiAnalysis.wearingClothes !== undefined
+                      ? (result.aiAnalysis.wearingClothes
+                          ? "Yes (not squatch)"
+                          : "No"
+                        ).replace(/^./, (c) => c.toUpperCase())
+                      : "—"}
+                  </p>
+                </div>
+              </div>
+                </>
+              )}
+            </section>
+          )}
         </div>
-      </main>
+      </div>
     </div>
   );
 }
