@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { getProgressMessage } from "@/lib/squatch";
 
 interface AnalysisResult {
@@ -11,6 +11,8 @@ interface AnalysisResult {
     humanoidSquatchLike?: boolean;
     wearingClothes?: boolean;
     hairyOrFurry?: boolean;
+    knownPrimate?: boolean;
+    primateType?: string;
     animal?: boolean;
     animalType?: string;
     lighting?: string;
@@ -32,6 +34,19 @@ export default function Home() {
   const [progressIndex, setProgressIndex] = useState(0);
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
+
+  const handleRemoveImage = useCallback(() => {
+    abortControllerRef.current?.abort();
+    setImage(null);
+    setPreview((p) => {
+      if (p) URL.revokeObjectURL(p);
+      return null;
+    });
+    setResult(null);
+    setError(null);
+    setAnalyzing(false);
+  }, []);
 
   const handleFileChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -55,6 +70,7 @@ export default function Home() {
     setAnalyzing(true);
     setResult(null);
     setError(null);
+    abortControllerRef.current = new AbortController();
 
     const progressInterval = setInterval(() => {
       setProgressIndex((i) => i + 1);
@@ -72,6 +88,7 @@ export default function Home() {
       const res = await fetch("/api/analyze", {
         method: "POST",
         body: formData,
+        signal: abortControllerRef.current?.signal,
       });
 
       const contentType = res.headers.get("content-type");
@@ -105,6 +122,7 @@ export default function Home() {
 
       setResult(data as AnalysisResult);
     } catch (err) {
+      if (err instanceof Error && err.name === "AbortError") return;
       console.error("[SquatchScan] Request error:", err);
       setError(err instanceof Error ? err.message : "Something went wrong");
     } finally {
@@ -155,17 +173,8 @@ export default function Home() {
                   />
                   <button
                     type="button"
-                    onClick={() => {
-                      setImage(null);
-                      setPreview((p) => {
-                        if (p) URL.revokeObjectURL(p);
-                        return null;
-                      });
-                      setResult(null);
-                      setError(null);
-                    }}
-                    disabled={analyzing}
-                    className="absolute -right-3 -top-3 flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-stone-800/90 text-xl text-white transition hover:bg-stone-700 disabled:cursor-not-allowed disabled:opacity-50"
+                    onClick={handleRemoveImage}
+                    className="absolute -right-3 -top-3 flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-stone-800/90 text-xl text-white transition hover:bg-stone-700"
                     aria-label="Remove image"
                   >
                     ×

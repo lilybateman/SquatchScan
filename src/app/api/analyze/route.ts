@@ -16,6 +16,8 @@ const VISION_PROMPT = `Analyze this image for potential Bigfoot/Sasquatch detect
   "humanoidSquatchLike": true|false,
   "wearingClothes": true|false,
   "hairyOrFurry": true|false,
+  "knownPrimate": true|false,
+  "primateType": "orangutan|gorilla|chimpanzee|monkey|gibbon|none|unknown",
   "animal": true|false,
   "animalType": "bear|deer|nothing|etc if animal detected",
   "lighting": "low|medium|bright|well-lit|dark",
@@ -26,6 +28,8 @@ const VISION_PROMPT = `Analyze this image for potential Bigfoot/Sasquatch detect
 }
 
 IMPORTANT: humanoidSquatchLike = true ONLY if the figure looks ape-like, hairy, unclothed, or cryptid-like—NOT a normal clothed person. wearingClothes = true if the humanoid figure is wearing shirts, pants, jackets, hats, etc. A regular hiker in a forest should have wearingClothes=true and humanoidSquatchLike=false.
+
+CRITICAL - KNOWN PRIMATES: knownPrimate = true if the creature is clearly a recognizable species: orangutan, gorilla, chimpanzee, monkey, gibbon, baboon, etc. primateType = the specific species if known, otherwise "unknown". Sasquatch/Bigfoot is a CRYPTID, not a known primate. A clear photo of an orangutan in a zoo = knownPrimate=true, primateType=orangutan. A blurry forest silhouette that could be anything = knownPrimate=false. Do NOT confuse known primates with Sasquatch.
 
 CRITICAL: dadProfileMatch = true ONLY if the image shows a man who appears to be in his early 60s (approximately 60-65 years old) with whitish-blonde or blonde hair and white/Caucasian ethnicity. This must match all these traits. Do NOT set true for other men, younger people, or different hair/ethnicity.`;
 

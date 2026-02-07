@@ -10,6 +10,8 @@ export interface AIAnalysis {
   humanoidSquatchLike?: boolean;
   wearingClothes?: boolean;
   hairyOrFurry?: boolean;
+  knownPrimate?: boolean;
+  primateType?: string;
   animal?: boolean;
   animalType?: string;
   lighting?: string;
@@ -46,6 +48,7 @@ export function getProgressMessage(index: number): string {
  * Main squatch scoring algorithm
  * Key: Only squatch-like humanoids (hairy, unclothed) get high scores.
  * Normal clothed people in forests should NOT score high.
+ * Known primates (orangutans, gorillas, etc.) should NOT score high.
  */
 export function calculateSquatchScore(data: AIAnalysis): number {
   let score = 10;
@@ -53,8 +56,29 @@ export function calculateSquatchScore(data: AIAnalysis): number {
   const env = (data.environment || "").toLowerCase();
   const blurry = data.blurry ?? 0;
   const lighting = (data.lighting || "").toLowerCase();
-  const objects = (data.objectsDetected || []).join(" ").toLowerCase();
   const animalType = (data.animalType || "").toLowerCase();
+  const primateType = (data.primateType || "").toLowerCase();
+
+  // Known primate = NOT squatch (big penalty—these are zoo animals, not cryptids)
+  if (data.knownPrimate) {
+    // Clear, high-quality photo of known primate = very low score
+    if (blurry < 4) score -= 70;
+    // Blurry primate photo = still a penalty, but maybe uncertain
+    else score -= 50;
+  }
+  // Also check primateType in case knownPrimate is missed
+  const isKnownPrimateType =
+    primateType.includes("orangutan") ||
+    primateType.includes("gorilla") ||
+    primateType.includes("chimpanzee") ||
+    primateType.includes("chimp") ||
+    primateType.includes("monkey") ||
+    primateType.includes("gibbon") ||
+    primateType.includes("baboon");
+  if (isKnownPrimateType && !data.knownPrimate) {
+    if (blurry < 4) score -= 65;
+    else score -= 45;
+  }
 
   // Environment
   if (env.includes("forest") || env.includes("woods")) score += 15;
@@ -64,10 +88,13 @@ export function calculateSquatchScore(data: AIAnalysis): number {
   if (data.wearingClothes) score -= 50;
 
   // Squatch-like humanoid: hairy, ape-like, unclothed (key signal)
-  if (data.humanoidSquatchLike) score += 45;
-  if (data.hairyOrFurry && data.humanoid) score += 35;
-  // Generic humanoid without squatch traits = much smaller bonus
-  if (data.humanoid && !data.wearingClothes && !data.humanoidSquatchLike && !data.hairyOrFurry) score += 15;
+  // But not if it's a known primate
+  if (!data.knownPrimate && !isKnownPrimateType) {
+    if (data.humanoidSquatchLike) score += 45;
+    if (data.hairyOrFurry && data.humanoid) score += 35;
+    // Generic humanoid without squatch traits = much smaller bonus
+    if (data.humanoid && !data.wearingClothes && !data.humanoidSquatchLike && !data.hairyOrFurry) score += 15;
+  }
 
   // Classic blurry evidence
   if (blurry > 7) score += 20;
