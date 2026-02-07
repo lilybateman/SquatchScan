@@ -132,8 +132,10 @@ export default function Home() {
     }
   }, [image]);
 
+  const hasResult = result && !analyzing;
+
   return (
-    <div className="relative min-h-screen">
+    <div className="relative min-h-screen h-screen overflow-hidden flex flex-col">
       <div
         className="fixed inset-0 bg-cover bg-left bg-no-repeat"
         style={{ backgroundImage: "url(/Patterson_Gimlin_Bigfoot.jpg)" }}
@@ -142,19 +144,19 @@ export default function Home() {
         className="fixed inset-0 bg-emerald-900/60"
         aria-hidden
       />
-      <div className="relative z-10 mx-auto max-w-2xl px-4 py-12 sm:px-6">
-        <header className="mb-12 text-center">
-          <h1 className="font-serif text-4xl font-bold tracking-tight text-stone-100 sm:text-5xl">
+      <div className="relative z-10 mx-auto w-full max-w-2xl flex-1 flex flex-col min-h-0 px-4 py-4 sm:px-6 sm:py-6">
+        <header className={`text-center flex-shrink-0 ${hasResult ? "mb-2" : "mb-6"}`}>
+          <h1 className={`font-serif font-bold tracking-tight text-stone-100 ${hasResult ? "text-2xl" : "text-4xl sm:text-5xl"}`}>
             SquatchScan
           </h1>
-          <p className="mt-2 text-lg font-medium text-stone-100 drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">
+          <p className={`font-medium text-stone-100 drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)] ${hasResult ? "text-sm mt-0.5" : "text-lg mt-2"}`}>
             Scientific image analysis for the discerning cryptozoologist
           </p>
         </header>
 
-        <div className="space-y-8">
+        <div className={`flex-1 flex min-h-0 flex-col gap-4 overflow-hidden`}>
           {/* Upload */}
-          <section className="rounded-2xl border border-stone-700/50 bg-stone-900/40 p-6 shadow-lg backdrop-blur-sm">
+          <section className={`rounded-2xl border border-stone-700/50 bg-stone-900/40 shadow-lg backdrop-blur-sm flex-shrink-0 p-4 max-w-md mx-auto w-full`}>
             <input
               id="file-upload"
               type="file"
@@ -164,12 +166,12 @@ export default function Home() {
               disabled={analyzing}
             />
             {preview ? (
-              <div className="relative flex flex-col items-center justify-center gap-4 rounded-xl border-2 border-stone-600/60 bg-stone-800/30 py-12">
+              <div className="relative flex flex-col items-center justify-center rounded-xl border-2 border-stone-600/60 bg-stone-800/30 py-8 gap-4">
                 <div className="relative">
                   <img
                     src={preview}
                     alt="Preview"
-                    className="max-h-64 max-w-full rounded-lg object-contain"
+                    className="max-w-full max-h-48 rounded-lg object-contain"
                   />
                   <button
                     type="button"
@@ -191,8 +193,9 @@ export default function Home() {
             )}
           </section>
 
-          {/* Analyze */}
-          <div className="flex justify-center">
+          {/* Analyze - hide when results shown */}
+          {!hasResult && (
+          <div className="flex justify-center flex-shrink-0">
             <button
               onClick={handleAnalyze}
               disabled={!image || analyzing}
@@ -201,10 +204,11 @@ export default function Home() {
               {analyzing ? "Scanning…" : "Scan for Squatch"}
             </button>
           </div>
+          )}
 
           {/* Progress */}
           {analyzing && (
-            <div className="animate-pulse rounded-2xl border border-stone-600/50 bg-stone-800/40 p-6 text-center">
+            <div className="animate-pulse rounded-2xl border border-stone-600/50 bg-stone-800/40 p-4 text-center flex-shrink-0">
               <p className="font-mono text-sm text-stone-400">
                 {getProgressMessage(progressIndex)}
               </p>
@@ -220,49 +224,47 @@ export default function Home() {
 
           {/* Result */}
           {result && !analyzing && (
-            <section className="space-y-4 rounded-2xl border border-stone-700/50 bg-stone-900/40 p-6 shadow-lg backdrop-blur-sm">
+            <section className="flex-1 flex flex-col min-h-0 rounded-2xl border border-stone-700/50 bg-stone-900/40 p-4 shadow-lg backdrop-blur-sm overflow-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               {result.dadSquatch ? (
-                <>
-                  <div className="rounded-xl bg-stone-800/50 p-6 text-center">
-                    <p className="text-sm uppercase tracking-wider text-stone-400">
-                      Squatch Probability
-                    </p>
-                    <p className="font-serif text-5xl font-bold text-emerald-400">
-                      100%
-                    </p>
-                    <p className="mt-2 font-medium text-stone-300">
-                      Definitely a squatch, no explanation needed.
-                    </p>
-                  </div>
-                </>
+                <div className="rounded-xl bg-stone-800/50 p-4 text-center flex-shrink-0">
+                  <p className="text-xs uppercase tracking-wider text-stone-400">
+                    Squatch Probability
+                  </p>
+                  <p className="font-serif text-4xl font-bold text-emerald-400">
+                    100%
+                  </p>
+                  <p className="mt-1 text-sm font-medium text-stone-300">
+                    Definitely a squatch, no explanation needed.
+                  </p>
+                </div>
               ) : (
-                <>
-                  <h2 className="font-serif text-2xl font-bold text-stone-100">
+                <div className="flex-1 flex flex-col min-h-0 gap-3 overflow-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                  <h2 className="font-serif text-xl font-bold text-stone-100 flex-shrink-0">
                     Scientific Report
                   </h2>
 
                   {/* Score */}
-                  <div className="rounded-xl bg-stone-800/50 p-6 text-center">
-                    <p className="text-sm uppercase tracking-wider text-stone-400">
+                  <div className="rounded-xl bg-stone-800/50 p-4 text-center flex-shrink-0">
+                    <p className="text-xs uppercase tracking-wider text-stone-400">
                       Squatch Probability
                     </p>
-                    <p className="font-serif text-5xl font-bold text-emerald-400">
+                    <p className="font-serif text-4xl font-bold text-emerald-400">
                       {result.score}%
                     </p>
-                    <p className="mt-2 font-medium text-stone-300">
+                    <p className="mt-1 text-sm font-medium text-stone-300">
                       {result.conclusion}
                     </p>
                     {result.easterEgg && (
-                      <p className="mt-2 text-sm italic text-stone-500">
+                      <p className="mt-1 text-xs italic text-stone-500">
                         {result.easterEgg}
                       </p>
                     )}
                   </div>
 
                   {/* Report sections */}
-                  <div className="grid gap-4 sm:grid-cols-2">
-                <div className="rounded-lg border border-stone-700/40 bg-stone-800/30 p-4">
-                  <p className="text-xs font-semibold uppercase tracking-wider text-stone-500">
+                  <div className="grid gap-2 sm:grid-cols-2 flex-shrink-0">
+                <div className="rounded-lg border border-stone-700/40 bg-stone-800/30 p-3">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-stone-500">
                     🌲 Environment Suitability
                   </p>
                   <p className="mt-1 font-medium text-stone-300">
@@ -272,8 +274,8 @@ export default function Home() {
                       : "—"}
                   </p>
                 </div>
-                <div className="rounded-lg border border-stone-700/40 bg-stone-800/30 p-4">
-                  <p className="text-xs font-semibold uppercase tracking-wider text-stone-500">
+                <div className="rounded-lg border border-stone-700/40 bg-stone-800/30 p-3">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-stone-500">
                     📷 Blur Index
                   </p>
                   <p className="mt-1 font-medium text-stone-300">
@@ -282,8 +284,8 @@ export default function Home() {
                       : "—"}
                   </p>
                 </div>
-                <div className="rounded-lg border border-stone-700/40 bg-stone-800/30 p-4">
-                  <p className="text-xs font-semibold uppercase tracking-wider text-stone-500">
+                <div className="rounded-lg border border-stone-700/40 bg-stone-800/30 p-3">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-stone-500">
                     🦣 Humanoid Squatch Detection
                   </p>
                   <p className="mt-1 font-medium text-stone-300">
@@ -302,8 +304,8 @@ export default function Home() {
                     })()}
                   </p>
                 </div>
-                <div className="rounded-lg border border-stone-700/40 bg-stone-800/30 p-4">
-                  <p className="text-xs font-semibold uppercase tracking-wider text-stone-500">
+                <div className="rounded-lg border border-stone-700/40 bg-stone-800/30 p-3">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-stone-500">
                     👕 Clothing Detected
                   </p>
                   <p className="mt-1 font-medium text-stone-300">
@@ -316,7 +318,7 @@ export default function Home() {
                   </p>
                 </div>
               </div>
-                </>
+                </div>
               )}
             </section>
           )}
